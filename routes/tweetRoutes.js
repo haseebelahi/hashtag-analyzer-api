@@ -20,7 +20,7 @@ const queryDB = (searchTerm, lastEvaluatedKey) => {
                 "#SearchTerm": "SearchTerm"
             },
             ExpressionAttributeValues: {
-                ":SearchTerm": '#StudentsMarchExposed'
+                ":SearchTerm": searchTerm
             }
         };
         if(lastEvaluatedKey) {
@@ -38,6 +38,7 @@ const queryDB = (searchTerm, lastEvaluatedKey) => {
 }
 
 const getData = async (searchTerm) => {
+    console.log(searchTerm);
     return new Promise(async (resolve, reject) => {
         let allData = {};
         let lastEvaluatedKey = null;
@@ -68,9 +69,10 @@ const getData = async (searchTerm) => {
 
 
 module.exports = app => {
-    app.get('/api/allstats', async (req, res) => {
+    app.get('/api/allstats/:hashtag', async (req, res) => {
         try {
-            let data = await getData('#StudentsMarchExposed');
+            console.log(req.params.hashtag);
+            let data = await getData('#' + req.params.hashtag);
             let allTweets = [];
             let wordFreq = [];
             let commonLinks = [];
@@ -83,19 +85,23 @@ module.exports = app => {
                     commonLinks = item[STATS['common_links']];
                 }
             });
-            const statsCalculator = new StatsCalculator(allTweets, 15);
+            const statsCalculator = new StatsCalculator(allTweets, 25);
             const allStats = {};
             allStats['topN'] = statsCalculator.getTopN();
             allStats['totalTweets'] = statsCalculator.getTotalTweetCount();
             allStats['hashtagStarters'] = statsCalculator.getHashTagStarters();
             allStats['totalUsersTweeting'] = statsCalculator.getTotalUsersTweeting();
+            allStats['tweetCountInFirst5'] = statsCalculator.getMostTweetsInAMinute();
             allStats['tweetsPerHour'] = statsCalculator.getTweetsPerHour();
-            allStats['tweetCountInFirst5'] = statsCalculator.getTweetCountInFirst5Minutes();
             allStats['wordFreq'] = wordFreq;
             allStats['commonLinks'] = commonLinks;
+            allStats['topTweeters'] = statsCalculator.getTopTweeters();
+            allStats['totalLikes'] = statsCalculator.getTotalLikes();
+            allStats['totalRetweets'] = statsCalculator.getTotalRetweets();
             res.send(allStats);
         }
         catch(err) {
+            console.log(err);
             res.status(500).send('something went wrong');
         }
     });
